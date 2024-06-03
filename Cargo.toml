@@ -1,0 +1,23 @@
+[package]
+name = "azure-storage-uploader"
+version = "0.20.0"
+edition = "2021"
+
+[dependencies]
+azure_core = "0.20"
+azure_identity = "0.20"
+azure_storage = "0.20"
+azure_svc_blobstorage = "0.20"
+azure_storage_blobs = "0.20.0"
+bytes = "1.0"
+time = "0.3.10"
+futures = "0.3"
+tracing = "0.1.40"
+md5 = {version="0.7", optional=true}
+RustyXML = "0.3"
+serde = { version = "1.0" }
+serde_derive = "1.0"
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+url = "2.2"
+tokio = { version = "1.38.0", features = ["full"] }
