@@ -54,7 +54,7 @@ async fn main() -> azure_core::Result<()> {
     // Allow all blobs to upload.
     try_join_all(upload_futures).await?;
 
-    println!("All files uploaded successfully!");
+    println!("All files uploaded successfully!!");
 
     Ok(())
 }
