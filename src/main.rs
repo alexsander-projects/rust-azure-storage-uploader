@@ -5,7 +5,7 @@ use std::io::Read;
 use druid::{
     AppLauncher, Widget, WindowDesc,
     widget::{TextBox, Button, Flex, Label, ProgressBar as DruidProgressBar},
-    Data, Lens, Env, Command, Target, WidgetExt, ExtEventSink, AppDelegate, DelegateCtx, Handled, Selector,
+    Data, Lens, Env, Command, Target, WidgetExt, AppDelegate, DelegateCtx, Handled, Selector,
 };
 use std::path::Path;
 use futures::future::try_join_all;
