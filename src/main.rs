@@ -5,11 +5,12 @@ use std::io::Read;
 use druid::{
     AppLauncher, Widget, WindowDesc,
     widget::{TextBox, Button, Flex, Label, ProgressBar as DruidProgressBar},
-    Data, Lens, Env, Command, Target, WidgetExt, AppDelegate, DelegateCtx, Handled, Selector,
+    Data, Lens, Env, Command, Target, WidgetExt, AppDelegate, DelegateCtx, Handled, Selector, Color,
 };
 use std::path::Path;
 use futures::future::try_join_all;
 use indicatif::{ProgressBar, ProgressStyle};
+use druid::theme;
 
 #[derive(Clone, Data, Lens)]
 struct Uploader {
@@ -40,25 +41,26 @@ fn ui_builder() -> impl Widget<Uploader> {
 
     let container_input = Flex::row()
         .with_child(Label::new("Container:"))
-        .with_child(TextBox::new().lens(Uploader::container));
+        .with_flex_child(TextBox::new().lens(Uploader::container), 1.0);
 
     let folder_path_input = Flex::row()
         .with_child(Label::new("Folder Path:"))
-        .with_child(TextBox::new().lens(Uploader::folder_path));
+        .with_flex_child(TextBox::new().lens(Uploader::container), 1.0);
 
     let upload_folder_input = Flex::row()
         .with_child(Label::new("Upload Folder:"))
-        .with_child(TextBox::new().lens(Uploader::upload_folder));
+        .with_flex_child(TextBox::new().lens(Uploader::container), 1.0);
 
     let storage_account_input = Flex::row()
         .with_child(Label::new("Storage Account:"))
-        .with_child(TextBox::new().lens(Uploader::storage_account));
+        .with_flex_child(TextBox::new().lens(Uploader::container), 1.0);
 
     let storage_account_key_input = Flex::row()
         .with_child(Label::new("Storage Account Key:"))
-        .with_child(TextBox::new().lens(Uploader::storage_account_key));
+        .with_flex_child(TextBox::new().lens(Uploader::container), 1.0);
 
-    let upload_button = Button::new("Upload").on_click(move |ctx, data: &mut Uploader, _env| {
+
+        let upload_button = Flex::row().with_child(Button::new("Upload").on_click(move |ctx, data: &mut Uploader, _env| {
         let container = data.container.clone();
         let folder_path = data.folder_path.clone();
         let upload_folder = data.upload_folder.clone();
@@ -159,18 +161,25 @@ fn ui_builder() -> impl Widget<Uploader> {
                 }
             });
         });
-    });
+        }));
 
     Flex::column()
         .with_child(container_input)
+        .with_spacer(10.0)
         .with_child(folder_path_input)
+        .with_spacer(10.0)
         .with_child(upload_folder_input)
+        .with_spacer(10.0)
         .with_child(storage_account_input)
+        .with_spacer(10.0)
         .with_child(storage_account_key_input)
+        .with_spacer(10.0)
         .with_child(upload_button)
+        .with_spacer(10.0)
         .with_child(info_label)
         .with_child(progress_bar)
         .with_child(error_label)
+        .padding(10.0)
 }
 
 fn main() {
@@ -189,7 +198,20 @@ fn main() {
     };
 
     AppLauncher::with_window(main_window)
-        .delegate(Delegate)
+        .configure_env(|env, _| {
+            // Set the background color to black
+            env.set(theme::BACKGROUND_LIGHT, Color::rgb8(0, 0, 0));
+            // Set the background color to black
+            env.set(theme::BACKGROUND_DARK, Color::rgb8(0, 0, 0));
+            // Set the primary light color to blue
+            env.set(theme::PRIMARY_LIGHT, Color::rgb8(0, 0, 255));
+            // Set the primary dark color to red
+            env.set(theme::PRIMARY_DARK, Color::rgb8(255, 0, 0));
+            // Set the font size to 20.0
+            env.set(theme::TEXT_SIZE_NORMAL, 2.0);
+            // Set the font size to 20.0
+            env.set(theme::TEXT_SIZE_LARGE, 2.0);
+        })
         .launch(initial_state)
         .expect("Failed to launch application");
 }
