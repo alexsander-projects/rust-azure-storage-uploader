@@ -11,7 +11,7 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
-#[derive(Clone, Data, Lens)]
+#[derive(Clone, Lens)]
 struct Uploader {
     container: String,
     folder_path: String,
@@ -25,6 +25,8 @@ struct Uploader {
 const UPDATE_PROGRESS: Selector<f64> = Selector::new("uploader.update-progress");
 const UPDATE_ERROR: Selector<String> = Selector::new("uploader.update-error");
 const UPDATE_INFO: Selector<String> = Selector::new("uploader.update-info");
+const UPDATE_FILE_NAME: Selector<String> = Selector::new("uploader.update-file-name");
+const UPDATE_BLOB_NAME: Selector<String> = Selector::new("uploader.update-blob-name");
 
 fn ui_builder() -> impl Widget<Uploader> {
     let info_label = Label::new(|data: &Uploader, _env: &Env| format!("{}", data.info));
@@ -60,6 +62,34 @@ fn ui_builder() -> impl Widget<Uploader> {
             let account = data.storage_account.clone();
             let access_key = data.storage_account_key.clone();
             let ext_event_sink = ctx.get_external_handle();
+
+            // Check if all necessary inputs are provided
+            if container.is_empty() {
+                data.error = "Container is required.".to_string();
+                return;
+            }
+            if folder_path.is_empty() {
+                data.error = "Folder Path is required.".to_string();
+                return;
+            }
+            if upload_folder.is_empty() {
+                data.error = "Upload Folder is required.".to_string();
+                return;
+            }
+            if account.is_empty() {
+                data.error = "Storage Account is required.".to_string();
+                return;
+            }
+            if access_key.is_empty() {
+                data.error = "Storage Account Key is required.".to_string();
+                return;
+            }
+
+            // Check if the path exists
+            if !Path::new(&folder_path).exists() {
+                data.error = "Folder path not found.".to_string();
+                return;
+            }
 
             data.info = format!(
                 "Uploading files from {} to {}/{} in container {}...",
@@ -137,6 +167,22 @@ fn ui_builder() -> impl Widget<Uploader> {
 
                             let blob_name = format!("{}/{}", upload_folder, file_name);
 
+                            ext_event_sink
+                                .submit_command(
+                                    UPDATE_FILE_NAME,
+                                    file_name.clone(),
+                                    Target::Auto,
+                                )
+                                .unwrap();
+
+                            ext_event_sink
+                                .submit_command(
+                                    UPDATE_BLOB_NAME,
+                                    blob_name.clone(),
+                                    Target::Auto,
+                                )
+                                .unwrap();
+
                             let mut file = match fs::File::open(&path) {
                                 Ok(file) => file,
                                 Err(err) => {
@@ -181,33 +227,45 @@ fn ui_builder() -> impl Widget<Uploader> {
                     }
 
                     // Allow all blobs to upload.
-                    match try_join_all(upload_futures).await {
-                        Ok(_) => {
-                            ext_event_sink
-                                .submit_command(UPDATE_PROGRESS, 100.0, Target::Auto)
-                                .unwrap();
-                            ext_event_sink
-                                .submit_command(
-                                    UPDATE_INFO,
-                                    "All files uploaded successfully!".to_string(),
-                                    Target::Auto,
-                                )
-                                .unwrap();
-                        }
-                        Err(err) => {
-                            ext_event_sink
-                                .submit_command(
-                                    UPDATE_ERROR,
-                                    format!("Failed to upload files: {:?}", err),
-                                    Target::Auto,
-                                )
-                                .unwrap();
+                    if upload_futures.is_empty() {
+                        ext_event_sink
+                            .submit_command(
+                                UPDATE_INFO,
+                                "No files to upload.".to_string(),
+                                Target::Auto,
+                            )
+                            .unwrap();
+                    } else {
+                        // Allow all blobs to upload.
+                        match try_join_all(upload_futures).await {
+                            Ok(_) => {
+                                ext_event_sink
+                                    .submit_command(UPDATE_PROGRESS, 100.0, Target::Auto)
+                                    .unwrap();
+                                ext_event_sink
+                                    .submit_command(
+                                        UPDATE_INFO,
+                                        "All files uploaded successfully!".to_string(),
+                                        Target::Auto,
+                                    )
+                                    .unwrap();
+                            }
+                            Err(err) => {
+                                ext_event_sink
+                                    .submit_command(
+                                        UPDATE_ERROR,
+                                        format!("Failed to upload files: {:?}", err),
+                                        Target::Auto,
+                                    )
+                                    .unwrap();
+                            }
                         }
                     }
                 });
             });
         },
     ));
+
 
     Flex::column()
         .with_child(container_input)
@@ -269,7 +327,7 @@ impl AppDelegate<Uploader> for Delegate {
         _: &Env,
     ) -> Handled {
         if let Some(progress) = cmd.get(UPDATE_PROGRESS) {
-            data.info = format!("Progress: {:.2}%", progress);
+            data.info.push_str(&format!("\nProgress: {:.2}%", progress));
             return Handled::Yes;
         }
         if let Some(error) = cmd.get(UPDATE_ERROR) {
@@ -277,9 +335,29 @@ impl AppDelegate<Uploader> for Delegate {
             return Handled::Yes;
         }
         if let Some(info) = cmd.get(UPDATE_INFO) {
-            data.info = info.clone();
+            data.info.push_str(&format!("\n{}", info));
+            return Handled::Yes;
+        }
+        if let Some(file_name) = cmd.get(UPDATE_FILE_NAME) {
+            data.info.push_str(&format!("\nFile name: {}", file_name));
+            return Handled::Yes;
+        }
+        if let Some(blob_name) = cmd.get(UPDATE_BLOB_NAME) {
+            data.info.push_str(&format!("\nBlob name: {}", blob_name));
             return Handled::Yes;
         }
         Handled::No
+    }
+}
+
+impl Data for Uploader {
+    fn same(&self, other: &Self) -> bool {
+        self.container == other.container
+            && self.folder_path == other.folder_path
+            && self.upload_folder == other.upload_folder
+            && self.storage_account == other.storage_account
+            && self.storage_account_key == other.storage_account_key
+            && self.error == other.error
+            && self.info == other.info
     }
 }
