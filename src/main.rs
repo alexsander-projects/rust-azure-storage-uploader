@@ -168,19 +168,11 @@ fn ui_builder() -> impl Widget<Uploader> {
                             let blob_name = format!("{}/{}", upload_folder, file_name);
 
                             ext_event_sink
-                                .submit_command(
-                                    UPDATE_FILE_NAME,
-                                    file_name.clone(),
-                                    Target::Auto,
-                                )
+                                .submit_command(UPDATE_FILE_NAME, file_name.clone(), Target::Auto)
                                 .unwrap();
 
                             ext_event_sink
-                                .submit_command(
-                                    UPDATE_BLOB_NAME,
-                                    blob_name.clone(),
-                                    Target::Auto,
-                                )
+                                .submit_command(UPDATE_BLOB_NAME, blob_name.clone(), Target::Auto)
                                 .unwrap();
 
                             let mut file = match fs::File::open(&path) {
@@ -266,7 +258,6 @@ fn ui_builder() -> impl Widget<Uploader> {
         },
     ));
 
-
     Flex::column()
         .with_child(container_input)
         .with_spacer(10.0)
@@ -286,6 +277,13 @@ fn ui_builder() -> impl Widget<Uploader> {
 }
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    {
+        use winapi::um::wincon::FreeConsole;
+        unsafe {
+            FreeConsole();
+        }
+    }
     let main_window = WindowDesc::new(ui_builder()).title("Azure Storage Uploader");
 
     let initial_state = Uploader {
@@ -300,7 +298,7 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .configure_env(|env, _| {
-            env.set(druid::theme::TEXT_SIZE_NORMAL, 16.0);
+            env.set(theme::TEXT_SIZE_NORMAL, 16.0);
             // Set the background color to black
             env.set(theme::BACKGROUND_LIGHT, Color::rgb8(0, 0, 0));
             // Set the background color to black
