@@ -11,6 +11,7 @@
 - First, set the environment variables `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` with the credentials of your
   Azure Storage account.
 - Then, run the app specifying the container name, the folder path, and the upload folder name.
+- This is a command-line tool.
 
 ```bash
 cargo run --release -- <container> <folder_path> <upload_folder>
